@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assuring AI with ThousandEyes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #040d1e;
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .slide {
+    width: 1500px;
+    min-height: 860px;
+    background: linear-gradient(135deg, #050f24 0%, #071530 50%, #060d20 100%);
+    border-radius: 16px;
+    padding: 36px 44px 40px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 80px rgba(0,120,255,0.15);
+  }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,180,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,180,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; opacity: 0.13; }
+  .orb1 { width: 400px; height: 400px; background: #0055ff; top: -100px; left: -100px; }
+  .orb2 { width: 300px; height: 300px; background: #00c8ff; bottom: -50px; right: 220px; }
+  .orb3 { width: 200px; height: 200px; background: #ff4400; top: 50%; right: -50px; opacity: 0.07; }
+
+  .header { margin-bottom: 20px; position: relative; z-index: 1; }
+  .header h1 { font-family: 'Rajdhani', sans-serif; font-size: 40px; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 3px; }
+  .header h1 span { color: #1af0ff; }
+  .header .subtitle { font-size: 14px; color: #1af0ff; font-weight: 600; letter-spacing: 0.05em; }
+  .header .click-hint { font-size: 10px; color: #3a7090; font-family: 'Share Tech Mono', monospace; margin-top: 4px; letter-spacing: 0.05em; }
+
+  .main-layout { display: flex; gap: 18px; position: relative; z-index: 1; }
+  .flow-section { flex: 1; min-width: 0; }
+
+  .row-label {
+    font-size: 9px; font-family: 'Share Tech Mono', monospace;
+    color: #4a7fa5; letter-spacing: 0.12em; text-transform: uppercase;
+    margin-bottom: 5px; padding-left: 4px;
+  }
+
+  .flow-row { display: flex; align-items: center; gap: 0; margin-bottom: 8px; }
+
+  .node {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; position: relative; flex-shrink: 0;
+  }
+
+  .node-box {
+    width: 88px; height: 72px;
+    border: 1.5px solid; border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 8px 6px 6px;
+    position: relative; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .node-box:hover { transform: translateY(-2px); filter: brightness(1.25); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+  .node-box .icon { font-size: 20px; margin-bottom: 3px; line-height: 1; }
+  .node-box .label { font-family: 'Rajdhani', sans-serif; font-size: 10.5px; font-weight: 700; text-align: center; letter-spacing: 0.02em; line-height: 1.2; }
+
+  .node-tag { margin-top: 3px; font-size: 7.5px; font-family: 'Share Tech Mono', monospace; color: #3a6080; text-align: center; line-height: 1.3; max-width: 96px; }
+
+  .te-monitored {
+    position: relative; padding: 6px;
+    border: 2px solid #1af0ff; border-radius: 13px;
+    background: rgba(0,240,255,0.04);
+    box-shadow: 0 0 12px rgba(26,240,255,0.25), inset 0 0 8px rgba(26,240,255,0.05);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .te-monitored:hover { box-shadow: 0 0 20px rgba(26,240,255,0.45), inset 0 0 10px rgba(26,240,255,0.08); }
+  .te-monitored .node-box { border-color: rgba(26,240,255,0.35); }
+
+  .te-badge {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: #1af0ff; color: #020d1a;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 6.5px; font-weight: 700; letter-spacing: 0.08em;
+    padding: 1.5px 6px; border-radius: 3px;
+    white-space: nowrap; z-index: 10;
+  }
+
+  .arrow {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    position: relative; min-width: 18px; margin-bottom: 18px;
+  }
+  .arrow::after {
+    content: ''; display: block; width: 100%; height: 2px;
+    background: linear-gradient(90deg, #1a5080, #1af0ff55);
+  }
+  .arrow-head {
+    position: absolute; right: 0; width: 0; height: 0;
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+    border-left: 8px solid #1af0ff88;
+  }
+  .arrow-label {
+    position: absolute; top: -13px;
+    font-size: 7px; font-family: 'Share Tech Mono', monospace;
+    color: #2a7fa0; white-space: nowrap; letter-spacing: 0.05em;
+  }
+
+  .security-layer {
+    margin: 6px 0 10px;
+    border: 1px dashed rgba(255,100,50,0.3); border-radius: 10px;
+    padding: 8px 12px; display: flex; align-items: center; gap: 0;
+    background: rgba(255,50,0,0.03); position: relative;
+  }
+  .security-layer-label {
+    position: absolute; top: -9px; left: 12px;
+    font-size: 7.5px; font-family: 'Share Tech Mono', monospace;
+    color: #ff7040; background: #040d1e; padding: 0 6px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  .mini-node { display: flex; align-items: center; flex-shrink: 0; }
+  .mini-box {
+    display: flex; flex-direction: row; align-items: center;
+    gap: 7px; padding: 6px 10px; border: 1.5px solid; border-radius: 8px;
+    height: 58px; cursor: pointer; transition: all 0.2s;
+  }
+  .mini-box:hover { filter: brightness(1.25); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+  .mini-box .icon { font-size: 18px; flex-shrink: 0; }
+  .mini-box .label { font-family: 'Rajdhani', sans-serif; font-size: 10px; font-weight: 700; line-height: 1.2; }
+  .mini-box .sub { font-size: 7px; font-family: 'Share Tech Mono', monospace; margin-top: 2px; opacity: 0.75; }
+  .mini-arrow-head { position:absolute; right:0; top:-4px; width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; border-left:7px solid #ff704088; }
+
+  /* Color themes */
+  .node-blue   .node-box { border-color: #1a6eb5; background: rgba(20,60,110,0.5);  color: #7ec8ff; }
+  .node-cyan   .node-box { border-color: #00b4d8; background: rgba(0,100,140,0.4);  color: #00e5ff; }
+  .node-teal   .node-box { border-color: #00897b; background: rgba(0,80,70,0.4);    color: #4db6ac; }
+  .node-green  .node-box { border-color: #2e7d32; background: rgba(20,70,30,0.4);   color: #69c96f; }
+  .node-orange .node-box { border-color: #e65100; background: rgba(90,40,10,0.4);   color: #ff9d42; }
+  .node-purple .node-box { border-color: #6a1b9a; background: rgba(60,20,90,0.4);   color: #ce93d8; }
+  .node-gray   .node-box { border-color: #37474f; background: rgba(30,50,60,0.35);  color: #90a4ae; }
+  .mb-red    { border-color: #c62828; background: rgba(90,20,20,0.4);   color: #ef9a9a; }
+  .mb-gold   { border-color: #f57f17; background: rgba(90,60,10,0.4);   color: #ffe082; }
+  .mb-purple { border-color: #6a1b9a; background: rgba(60,20,90,0.4);   color: #ce93d8; }
+  .mb-teal   { border-color: #00897b; background: rgba(0,80,70,0.4);    color: #4db6ac; }
+  .mb-green  { border-color: #2e7d32; background: rgba(20,70,30,0.4);   color: #69c96f; }
+
+  /* Right panel */
+  .right-panel { width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+
+  .te-features {
+    border: 1.5px solid #1af0ff; border-radius: 12px; padding: 16px 15px;
+    background: rgba(5,20,45,0.75); position: relative; overflow: hidden;
+    box-shadow: 0 0 20px rgba(26,240,255,0.1);
+  }
+  .te-features::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,240,255,0.05), transparent); pointer-events: none; }
+  .te-logo { font-family: 'Rajdhani', sans-serif; font-size: 19px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 5px; }
+  .te-logo span { color: #1af0ff; }
+  .feature-item { display: flex; gap: 9px; margin-bottom: 9px; align-items: flex-start; }
+  .feature-dot { width: 6px; height: 6px; border-radius: 50%; background: #1af0ff; margin-top: 4px; flex-shrink: 0; }
+  .feature-text { font-size: 11px; color: #b0cfe0; line-height: 1.4; }
+
+  .legend { border: 1px solid #1a3050; border-radius: 10px; padding: 12px; background: rgba(5,15,35,0.6); }
+  .legend-title { font-size: 9px; font-family: 'Share Tech Mono', monospace; color: #4a7fa5; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 9px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; flex-shrink: 0; }
+  .legend-text { font-size: 10px; color: #7aa8c0; }
+  .legend-te { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .legend-te-box { width: 26px; height: 12px; border: 2px solid #1af0ff; border-radius: 3px; background: rgba(26,240,255,0.07); box-shadow: 0 0 6px rgba(26,240,255,0.3); flex-shrink: 0; }
+
+  .cisco-logo { position: absolute; bottom: 18px; right: 22px; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; color: #2a5a80; letter-spacing: 0.15em; }
+  .cisco-logo span { color: #1a8fbf; }
+  .confidential { position: absolute; bottom: 18px; left: 22px; font-size: 8.5px; font-family: 'Share Tech Mono', monospace; color: #2a4a60; letter-spacing: 0.1em; }
+
+  /* ══════════ MODAL ══════════ */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(2,8,20,0.85);
+    backdrop-filter: blur(6px);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    width: 660px; max-height: 84vh; overflow-y: auto;
+    background: linear-gradient(160deg, #07182e 0%, #050f22 100%);
+    border: 1.5px solid #1a4a70; border-radius: 16px;
+    padding: 36px 40px; position: relative;
+    box-shadow: 0 0 60px rgba(0,120,255,0.2), 0 0 120px rgba(0,0,0,0.6);
+    animation: modalIn 0.2s ease-out;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal::-webkit-scrollbar { width: 6px; }
+  .modal::-webkit-scrollbar-track { background: transparent; }
+  .modal::-webkit-scrollbar-thumb { background: #1a4a70; border-radius: 3px; }
+
+  .modal-close {
+    position: absolute; top: 16px; right: 18px;
+    background: none; border: none; color: #4a7fa5;
+    font-size: 22px; cursor: pointer; line-height: 1; transition: color 0.15s;
+  }
+  .modal-close:hover { color: #1af0ff; }
+
+  .modal-header { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
+  .modal-icon { font-size: 38px; line-height: 1; }
+  .modal-title-group { flex: 1; }
+  .modal-title { font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 700; color: #fff; line-height: 1; }
+  .modal-subtitle { font-size: 11px; font-family: 'Share Tech Mono', monospace; color: #3a8aaa; margin-top: 4px; letter-spacing: 0.08em; }
+  .modal-te-badge {
+    display: inline-block; background: #1af0ff; color: #020d1a;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
+    padding: 3px 10px; border-radius: 4px; margin-top: 7px;
+  }
+
+  .modal-section { margin-bottom: 24px; }
+  .modal-section-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 700;
+    color: #1af0ff; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 11px; padding-bottom: 7px;
+    border-bottom: 1px solid rgba(26,240,255,0.15);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .modal-section-title .num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(26,240,255,0.12); border: 1px solid #1af0ff;
+    font-size: 11px; display: flex; align-items: center; justify-content: center;
+    color: #1af0ff; flex-shrink: 0;
+  }
+
+  .modal-text { font-size: 13px; color: #9ab8cc; line-height: 1.75; }
+
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+  .modal-tag {
+    font-size: 10px; font-family: 'Share Tech Mono', monospace;
+    padding: 3px 10px; border-radius: 4px; border: 1px solid; letter-spacing: 0.05em;
+  }
+  .tag-blue   { border-color: #1a6eb5; color: #7ec8ff; background: rgba(20,60,110,0.3); }
+  .tag-cyan   { border-color: #00b4d8; color: #00e5ff; background: rgba(0,100,140,0.2); }
+  .tag-teal   { border-color: #00897b; color: #4db6ac; background: rgba(0,80,70,0.2); }
+  .tag-green  { border-color: #2e7d32; color: #69c96f; background: rgba(20,70,30,0.2); }
+  .tag-orange { border-color: #e65100; color: #ff9d42; background: rgba(90,40,10,0.2); }
+  .tag-red    { border-color: #c62828; color: #ef9a9a; background: rgba(90,20,20,0.2); }
+  .tag-purple { border-color: #6a1b9a; color: #ce93d8; background: rgba(60,20,90,0.2); }
+  .tag-gold   { border-color: #f57f17; color: #ffe082; background: rgba(90,60,10,0.2); }
+  .tag-gray   { border-color: #37474f; color: #90a4ae; background: rgba(30,50,60,0.2); }
+
+  .impact-item { display: flex; gap: 11px; align-items: flex-start; margin-bottom: 10px; }
+  .impact-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .impact-text { font-size: 13px; color: #9ab8cc; line-height: 1.65; }
+  .impact-text strong { color: #ef9a9a; }
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-header">
+      <div class="modal-icon" id="modalIcon"></div>
+      <div class="modal-title-group">
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-subtitle" id="modalSubtitle"></div>
+        <div id="modalTEBadge"></div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title"><span class="num">1</span> Interactions &amp; Connections</div>
+      <div class="modal-text" id="modalInteractions"></div>
+      <div class="modal-tags" id="modalTags"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title"><span class="num">2</span> Enterprise Use Cases</div>
+      <div id="modalUseCases"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title"><span class="num">3</span> Degradation Impact on AI Experience</div>
+      <div id="modalImpact"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE -->
+<div class="slide">
+  <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+
+  <div class="header">
+    <h1>Assuring <span>AI</span> with ThousandEyes</h1>
+    <div class="subtitle">Going beyond basic availability — full-stack AI observability</div>
+    <div class="click-hint">▸ Click any component tile to explore its role in the AI delivery path</div>
+  </div>
+
+  <div class="main-layout">
+    <div class="flow-section">
+
+      <!-- ROW 1 -->
+      <div class="row-label">▸ Primary Request Flow</div>
+      <div class="flow-row">
+
+        <div class="node node-blue">
+          <div class="node-box" onclick="openModal('end-user')">
+            <div class="icon">💻</div><div class="label">End User</div>
+          </div>
+          <div class="node-tag">Employee Device</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">HTTPS</div><div class="arrow-head"></div></div>
+
+        <div class="node node-cyan">
+          <div class="te-monitored" onclick="openModal('ai-ui')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">🖥️</div><div class="label">AI User Interface</div></div>
+          </div>
+          <div class="node-tag">Browser / App LLM Interface</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">TLS 1.3</div><div class="arrow-head"></div></div>
+
+        <div class="node node-teal">
+          <div class="te-monitored" onclick="openModal('corp-network')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">🔀</div><div class="label">Corp. Network</div></div>
+          </div>
+          <div class="node-tag">Firewall | Proxy | SSE | ZTNA</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">BGP / MPLS</div><div class="arrow-head"></div></div>
+
+        <div class="node node-blue">
+          <div class="te-monitored" onclick="openModal('internet')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">🌐</div><div class="label">Internet</div></div>
+          </div>
+          <div class="node-tag">ISP | Transit | CDN</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">REST / gRPC</div><div class="arrow-head"></div></div>
+
+        <div class="node node-orange">
+          <div class="te-monitored" onclick="openModal('api-gateway')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">🚪</div><div class="label">API Gateway</div></div>
+          </div>
+          <div class="node-tag">Auth | Rate Limit | Load Balance</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">Scored Token</div><div class="arrow-head"></div></div>
+
+        <div class="node node-purple">
+          <div class="te-monitored" onclick="openModal('ai-router')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">⚡</div><div class="label">AI Router</div></div>
+          </div>
+          <div class="node-tag">Cost | Latency | Model Select</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">Routed</div><div class="arrow-head"></div></div>
+
+        <div class="node node-cyan">
+          <div class="te-monitored" onclick="openModal('llm-api')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">⚙️</div><div class="label">LLM API</div></div>
+          </div>
+          <div class="node-tag">OpenAI | Anthropic | Gemini</div>
+        </div>
+
+      </div>
+
+      <!-- SECURITY BAND -->
+      <div class="security-layer">
+        <div class="security-layer-label">Security &amp; Compliance Processing Layer</div>
+
+        <div class="mini-node">
+          <div class="mini-box mb-red" onclick="openModal('guardrails')">
+            <div class="icon">🛡️</div><div><div class="label">Guardrails</div><div class="sub">Input / Output Filter</div></div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:14px;height:2px;background:linear-gradient(90deg,#502010,#ff704055);position:relative;align-self:center;"><div class="mini-arrow-head"></div></div>
+        <div class="mini-node">
+          <div class="mini-box mb-gold" onclick="openModal('tokenization')">
+            <div class="icon">🔐</div><div><div class="label">Tokenization Server</div><div class="sub">PII | DLP | Masking</div></div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:14px;height:2px;background:linear-gradient(90deg,#502010,#ff704055);position:relative;align-self:center;"><div class="mini-arrow-head"></div></div>
+        <div class="mini-node">
+          <div class="mini-box mb-purple" onclick="openModal('prompt-cache')">
+            <div class="icon">🧠</div><div><div class="label">Prompt Cache</div><div class="sub">KV Cache | Semantic Hash</div></div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:14px;height:2px;background:linear-gradient(90deg,#502010,#ff704055);position:relative;align-self:center;"><div class="mini-arrow-head"></div></div>
+        <div class="mini-node">
+          <div class="mini-box mb-teal" onclick="openModal('observability')">
+            <div class="icon">📜</div><div><div class="label">Observability</div><div class="sub">Tracing | Logging | Spans</div></div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:14px;height:2px;background:linear-gradient(90deg,#502010,#ff704055);position:relative;align-self:center;"><div class="mini-arrow-head"></div></div>
+        <div class="mini-node">
+          <div class="mini-box mb-green" onclick="openModal('response-validator')">
+            <div class="icon">✅</div><div><div class="label">Response Validator</div><div class="sub">Accuracy | Hallucination</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2 -->
+      <div class="row-label">▸ Inference &amp; Tool-Use Flow</div>
+      <div class="flow-row">
+
+        <div class="node node-blue">
+          <div class="node-box" onclick="openModal('llm-server')">
+            <div class="icon">☁️</div><div class="label">LLM Server</div>
+          </div>
+          <div class="node-tag">Cloud Provider | GPU Cluster</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">Tool Call</div><div class="arrow-head"></div></div>
+
+        <div class="node node-cyan">
+          <div class="te-monitored" onclick="openModal('mcp-server')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">🖧</div><div class="label">MCP Server</div></div>
+          </div>
+          <div class="node-tag">Tool Discovery | Auth | Broker</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">OAuth 2.0</div><div class="arrow-head"></div></div>
+
+        <div class="node node-orange">
+          <div class="node-box" onclick="openModal('identity-auth')">
+            <div class="icon">🔑</div><div class="label">Identity &amp; Auth</div>
+          </div>
+          <div class="node-tag">OIDC | SAML | API Keys</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">Signed JWT</div><div class="arrow-head"></div></div>
+
+        <div class="node node-green">
+          <div class="te-monitored" onclick="openModal('enterprise-apis')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">🗄️</div><div class="label">Enterprise APIs</div></div>
+          </div>
+          <div class="node-tag">CRM | ERP | Internal SaaS</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">Query</div><div class="arrow-head"></div></div>
+
+        <div class="node node-teal">
+          <div class="te-monitored" onclick="openModal('vector-db')">
+            <div class="te-badge">TE MONITORED</div>
+            <div class="node-box"><div class="icon">🔎</div><div class="label">Vector DB / RAG</div></div>
+          </div>
+          <div class="node-tag">Embeddings | Similarity Search</div>
+        </div>
+
+        <div class="arrow"><div class="arrow-label">Results</div><div class="arrow-head"></div></div>
+
+        <div class="node node-gray">
+          <div class="node-box" onclick="openModal('mcp-clients')">
+            <div class="icon">📂</div><div class="label">MCP Clients</div>
+          </div>
+          <div class="node-tag">Tools | Databases | Filesystems</div>
+        </div>
+
+        <div class="arrow" style="flex:0.6;"><div class="arrow-head"></div></div>
+
+        <div class="node node-purple">
+          <div class="node-box" onclick="openModal('enterprise-tools')">
+            <div class="icon">🔧</div><div class="label">Enterprise Tools</div>
+          </div>
+          <div class="node-tag">Jira | Slack | GitHub | SAP</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="te-features">
+        <div class="te-logo"><span>ThousandEyes</span> ◎</div>
+        <div class="feature-item"><div class="feature-dot"></div><div class="feature-text">Monitor <strong style="color:#1af0ff;">AI User Interface</strong> — page load, TTFB, browser errors &amp; experience scores</div></div>
+        <div class="feature-item"><div class="feature-dot"></div><div class="feature-text">Visibility into <strong style="color:#1af0ff;">Corp. Network</strong> — proxy health, SSE/ZTNA latency, firewall drops</div></div>
+        <div class="feature-item"><div class="feature-dot"></div><div class="feature-text">Internet path intelligence — <strong style="color:#1af0ff;">ISP / CDN</strong> routing, BGP changes, transit loss</div></div>
+        <div class="feature-item"><div class="feature-dot"></div><div class="feature-text">Inspect <strong style="color:#1af0ff;">API Gateway</strong> — auth failures, rate limit events, upstream error rates</div></div>
+        <div class="feature-item"><div class="feature-dot"></div><div class="feature-text">Inspect <strong style="color:#1af0ff;">AI Router</strong> — model routing decisions, fallback triggers, cost vs. latency</div></div>
+        <div class="feature-item"><div class="feature-dot"></div><div class="feature-text">Monitor <strong style="color:#1af0ff;">LLM API</strong> — response times, token utilization, per-provider availability</div></div>
+        <div class="feature-item"><div class="feature-dot"></div><div class="feature-text">Validate <strong style="color:#1af0ff;">MCP Server</strong> — tool discovery, auth flows, request broker health</div></div>
+        <div class="feature-item"><div class="feature-dot"></div><div class="feature-text">Assure <strong style="color:#1af0ff;">Enterprise API &amp; Vector DB</strong> — query latency, embedding response, RAG accuracy</div></div>
+      </div>
+      <div class="legend">
+        <div class="legend-title">Component Legend</div>
+        <div class="legend-te"><div class="legend-te-box"></div><div class="legend-text" style="color:#1af0ff;font-size:10px;">ThousandEyes Monitored</div></div>
+        <div class="legend-row"><div class="legend-dot" style="border-color:#1a6eb5;background:rgba(20,60,110,0.5);"></div><div class="legend-text">Network / Infrastructure</div></div>
+        <div class="legend-row"><div class="legend-dot" style="border-color:#e65100;background:rgba(90,40,10,0.4);"></div><div class="legend-text">API Gateway / Auth</div></div>
+        <div class="legend-row"><div class="legend-dot" style="border-color:#c62828;background:rgba(90,20,20,0.4);"></div><div class="legend-text">Security / Guardrails</div></div>
+        <div class="legend-row"><div class="legend-dot" style="border-color:#f57f17;background:rgba(90,60,10,0.4);"></div><div class="legend-text">Tokenization / DLP</div></div>
+        <div class="legend-row"><div class="legend-dot" style="border-color:#6a1b9a;background:rgba(60,20,90,0.4);"></div><div class="legend-text">AI Processing / Routing</div></div>
+        <div class="legend-row"><div class="legend-dot" style="border-color:#2e7d32;background:rgba(20,70,30,0.4);"></div><div class="legend-text">Enterprise Integrations</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cisco-logo"><span>cisco</span></div>
+  <div class="confidential">© Cisco Confidential</div>
+</div>
+
+<script>
+const DATA = {
+  'end-user': {
+    icon:'💻', title:'End User', subtitle:'Employee Device — The origin of every AI request', te:false,
+    interactions:'The End User is the originating point of all AI interactions. Requests flow from the employee device through the AI User Interface, then traverse the Corporate Network and public Internet before reaching the AI backend. Return responses flow back the same path. The device\'s performance, browser capabilities, and local network conditions all influence end-to-end experience.',
+    tags:[['AI User Interface','tag-cyan'],['Corp. Network','tag-teal'],['Internet','tag-blue']],
+    useCases:[
+      {icon:'🧑‍💼',text:'Employees using AI assistants (Copilot, custom GPTs) to draft communications, summarize documents, or generate code directly within their daily workflow tools.'},
+      {icon:'📞',text:'Customer-facing agents using AI to suggest responses, look up policies, or auto-populate CRM fields in real time during live customer interactions.'},
+      {icon:'🔬',text:'Research and analyst workflows where users query internal knowledge bases via natural language through an AI interface, replacing manual document search.'},
+    ],
+    impact:[
+      {icon:'🐢',text:'<strong>Slow device or browser</strong> adds latency before the request even leaves the premises, making the overall AI experience feel sluggish even if the LLM itself is fast.'},
+      {icon:'📡',text:'<strong>Poor local Wi-Fi or VPN</strong> can cause packet loss and jitter that inflates round-trip time, causing streaming responses to stutter or time out mid-generation.'},
+      {icon:'🔒',text:'<strong>Outdated browser or agent software</strong> may fail TLS negotiation with modern AI endpoints, causing silent connection failures users misattribute to the AI service being down.'},
+    ]
+  },
+  'ai-ui': {
+    icon:'🖥️', title:'AI User Interface', subtitle:'Browser / App LLM Interface — The user-facing presentation layer', te:true,
+    interactions:'The AI UI sits between the End User and the Corporate Network. It handles prompt construction, context window management, streaming token display, and session state. It communicates upstream through the Corporate Network and Internet to the API Gateway, and renders responses returned from the LLM API. It may also interface with the Tokenization Server to mask sensitive data before sending.',
+    tags:[['End User','tag-blue'],['Corp. Network','tag-teal'],['API Gateway','tag-orange'],['Tokenization Server','tag-gold']],
+    useCases:[
+      {icon:'💬',text:'Chat-style interfaces (e.g., enterprise ChatGPT, custom AI portals) that allow employees to interact with one or more LLMs from a single pane of glass with full conversation history.'},
+      {icon:'🔌',text:'Embedded AI widgets inside SaaS platforms (Salesforce Einstein, ServiceNow) that surface AI suggestions inline within existing workflows without context-switching.'},
+      {icon:'📱',text:'Mobile apps with AI capabilities — voice-to-prompt, document scanning, and intelligent search powered by a backend LLM API with streaming response rendering.'},
+    ],
+    impact:[
+      {icon:'⏱️',text:'<strong>High page load or DOM render time</strong> delays when users can even begin typing a prompt, adding perceived latency before any AI processing has occurred.'},
+      {icon:'📉',text:'<strong>Streaming failure or WebSocket drops</strong> cause responses to appear frozen mid-generation, requiring the user to manually retry and lose conversation context.'},
+      {icon:'🔴',text:'<strong>UI availability issues</strong> (CDN misses, JS bundle failures) render the entire AI capability inaccessible regardless of whether all backend services are perfectly healthy.'},
+    ]
+  },
+  'corp-network': {
+    icon:'🔀', title:'Corporate Network', subtitle:'Firewall | Proxy | SSE | ZTNA — The enterprise network boundary', te:true,
+    interactions:'The Corporate Network is traversed by every AI request after it leaves the End User device. It includes firewalls, forward proxies, Secure Service Edge (SSE) platforms, and Zero Trust Network Access (ZTNA) brokers. Outbound AI API calls must pass inspection rules, SSL decryption, and routing policy before reaching the Internet. Return traffic flows back through the same inspection path.',
+    tags:[['End User','tag-blue'],['AI User Interface','tag-cyan'],['Internet','tag-blue'],['Identity & Auth','tag-orange']],
+    useCases:[
+      {icon:'🛡️',text:'SSL/TLS inspection of AI API calls to enforce DLP policies and detect prompt injection or data exfiltration attempts at the network layer before data leaves the enterprise.'},
+      {icon:'🔒',text:'ZTNA enforcement ensuring only authorized devices with verified posture can reach AI service endpoints — eliminating the implicit trust of legacy VPN architectures.'},
+      {icon:'📊',text:'Bandwidth shaping and QoS policies that prioritize AI streaming traffic over lower-priority bulk transfers to maintain consistent response quality during peak hours.'},
+    ],
+    impact:[
+      {icon:'🔍',text:'<strong>SSL inspection overhead</strong> adds 20–100ms or more per request depending on proxy load, directly padding every AI query\'s round-trip time with unavoidable inspection latency.'},
+      {icon:'🚧',text:'<strong>Firewall rule misconfiguration</strong> can silently block AI API endpoints by IP or domain, causing requests to time out with no clear error surfaced to the end user.'},
+      {icon:'📶',text:'<strong>Proxy saturation during peak usage</strong> creates queuing delays that disproportionately affect streaming AI responses, causing token delivery to stutter or stall mid-response.'},
+    ]
+  },
+  'internet': {
+    icon:'🌐', title:'Internet', subtitle:'ISP | Transit | CDN — The uncontrolled middle mile', te:true,
+    interactions:'The Internet segment connects the enterprise edge to the AI provider\'s network. Requests traverse one or more ISPs, backbone transit providers, and potentially CDN PoPs before reaching the API Gateway. BGP routing determines the actual path taken, which can change dynamically. ThousandEyes provides hop-by-hop visibility measuring latency, loss, and routing changes across every segment of this uncontrolled path.',
+    tags:[['Corp. Network','tag-teal'],['API Gateway','tag-orange'],['CDN / ISP','tag-blue']],
+    useCases:[
+      {icon:'🌍',text:'Global enterprises routing AI traffic across multiple regions, relying on CDN PoPs to terminate TLS close to users and reduce round-trip time to LLM API backends.'},
+      {icon:'📡',text:'SD-WAN deployments where AI traffic is steered dynamically across MPLS, broadband, and LTE links based on real-time path quality scoring per link.'},
+      {icon:'🔁',text:'Multi-cloud AI architectures where traffic must traverse provider peering points with varying congestion profiles depending on time of day and geographic region.'},
+    ],
+    impact:[
+      {icon:'🌊',text:'<strong>BGP route flaps or suboptimal routing</strong> can add hundreds of milliseconds of latency to AI API calls, with root cause completely invisible without hop-by-hop path data.'},
+      {icon:'📦',text:'<strong>Packet loss in the middle mile</strong> triggers TCP retransmissions that cause streaming AI responses to pause and resume erratically, degrading perceived quality significantly.'},
+      {icon:'🔀',text:'<strong>ISP congestion during peak hours</strong> creates variable latency that makes AI response times inconsistent and unpredictable — extremely difficult to SLA against without external monitoring.'},
+    ]
+  },
+  'api-gateway': {
+    icon:'🚪', title:'API Gateway', subtitle:'Auth | Rate Limiting | Load Balancing — The front door to AI services', te:true,
+    interactions:'The API Gateway is the first point of contact at the AI provider or enterprise AI platform. It handles authentication (API keys, OAuth tokens), enforces rate limits per tenant or user, performs request transformation, and load-balances across multiple LLM API backend instances. It passes authenticated, validated requests upstream to the AI Router and returns responses back downstream to the caller.',
+    tags:[['Internet','tag-blue'],['AI Router','tag-purple'],['Identity & Auth','tag-orange'],['Guardrails','tag-red']],
+    useCases:[
+      {icon:'🔑',text:'Centralized API key management and rotation for all LLM provider access — enforcing per-team or per-application quotas to control cost and prevent runaway usage from any single consumer.'},
+      {icon:'⚖️',text:'Load balancing across multiple LLM deployments or regions to maximize throughput and prevent single-provider throttling limits from affecting all users simultaneously.'},
+      {icon:'📋',text:'Request/response logging and audit trail capture for compliance, enabling replay of AI interactions for security review, cost attribution, or model fine-tuning datasets.'},
+    ],
+    impact:[
+      {icon:'🚫',text:'<strong>Rate limit exhaustion</strong> returns 429 errors to all users simultaneously — AI features become completely unavailable with no graceful degradation and no clear ETA for recovery.'},
+      {icon:'🔐',text:'<strong>Auth service latency or failure</strong> causes every AI request to fail at the gate — even if the LLM itself is perfectly healthy, zero requests reach it when the gateway is degraded.'},
+      {icon:'🐌',text:'<strong>Gateway overload or misconfigured timeouts</strong> cause requests to queue indefinitely, making AI responses appear to hang when the LLM may have actually processed the request in milliseconds.'},
+    ]
+  },
+  'ai-router': {
+    icon:'⚡', title:'AI Router', subtitle:'Cost | Latency | Model Selection — Intelligent dispatch layer', te:true,
+    interactions:'The AI Router sits between the API Gateway and the pool of available LLM APIs. It evaluates each incoming request and selects the optimal model based on configured rules: prompt complexity, required capability tier, cost budget, expected latency, or provider availability. It also handles fallback logic — routing to an alternative provider if the primary is degraded or rate-limited.',
+    tags:[['API Gateway','tag-orange'],['LLM API','tag-cyan'],['Prompt Cache','tag-purple'],['Observability','tag-teal']],
+    useCases:[
+      {icon:'💰',text:'Cost optimization — routing simple classification or summarization tasks to cheaper small models, reserving expensive frontier models for complex multi-step reasoning tasks only.'},
+      {icon:'🔄',text:'Multi-provider resilience — automatically failing over from OpenAI to Anthropic or Azure OpenAI when a primary provider reports elevated error rates or latency spikes.'},
+      {icon:'⚡',text:'Latency-sensitive routing — detecting real-time voice or copilot use cases and prioritizing low-latency model endpoints over higher-quality but slower alternatives based on context.'},
+    ],
+    impact:[
+      {icon:'🎯',text:'<strong>Routing misconfiguration</strong> sends complex tasks to underpowered models, producing low-quality or incorrect outputs that erode user trust in the overall AI system.'},
+      {icon:'💸',text:'<strong>Fallback logic failure</strong> means provider outages propagate fully to end users rather than being silently absorbed by automatic rerouting to a healthy alternative provider.'},
+      {icon:'⏳',text:'<strong>Router scoring overhead</strong> adds latency to every single request — even a 50ms routing decision compounds significantly at scale across thousands of concurrent users.'},
+    ]
+  },
+  'llm-api': {
+    icon:'⚙️', title:'LLM API', subtitle:'OpenAI | Anthropic | Gemini — The AI inference endpoint', te:true,
+    interactions:'The LLM API is the external-facing endpoint of the AI provider. It receives tokenized, authenticated prompts from the AI Router, passes them to the LLM Server for inference, and streams tokens back to the caller. It also handles function/tool calling by returning structured tool-use requests that route to the MCP Server for enterprise system resolution before generation continues.',
+    tags:[['AI Router','tag-purple'],['LLM Server','tag-blue'],['MCP Server','tag-cyan'],['Response Validator','tag-green']],
+    useCases:[
+      {icon:'🧠',text:'Accessing frontier model capabilities (GPT-4o, Claude 3.5, Gemini Ultra) via a standardized REST/gRPC interface for text, code, image, and multimodal task processing.'},
+      {icon:'🔧',text:'Tool/function calling — the LLM API returns structured JSON tool requests that trigger MCP-mediated calls to enterprise APIs, enabling fully agentic automated workflows.'},
+      {icon:'📊',text:'Batch inference for offline workloads — processing large document sets, fine-tuning datasets, or analytics pipelines via asynchronous API endpoints with result callbacks.'},
+    ],
+    impact:[
+      {icon:'🔴',text:'<strong>Provider outage or rate limiting</strong> makes all AI-powered features unavailable simultaneously — this is the highest-impact single point of failure in the entire AI delivery stack.'},
+      {icon:'📈',text:'<strong>Latency spikes at the LLM API</strong> directly increase time-to-first-token, which users perceive immediately as the AI "thinking too long" even when all other components are healthy.'},
+      {icon:'🔄',text:'<strong>Model version changes or deprecations</strong> can silently alter output quality, formatting, or tool-calling behavior — degrading application functionality without any error code being raised.'},
+    ]
+  },
+  'guardrails': {
+    icon:'🛡️', title:'Guardrails', subtitle:'Input / Output Filter — Safety and policy enforcement layer', te:false,
+    interactions:'Guardrails intercept both inbound prompts and outbound LLM responses. On the input side, they scan for prompt injection attacks, jailbreak attempts, prohibited content categories, and off-topic requests. On the output side, they inspect LLM responses for policy violations, harmful content, or confidential data before delivery. They operate in-line between the AI UI and the LLM API.',
+    tags:[['AI User Interface','tag-cyan'],['LLM API','tag-cyan'],['Tokenization Server','tag-gold'],['Observability','tag-teal']],
+    useCases:[
+      {icon:'⚠️',text:'Blocking prompt injection attacks where malicious content embedded in user-supplied data attempts to hijack the LLM\'s instruction-following behavior and exfiltrate data.'},
+      {icon:'📜',text:'Regulatory compliance — automatically rejecting AI responses containing content prohibited under GDPR, HIPAA, or internal acceptable use policies before they reach the end user.'},
+      {icon:'🏢',text:'Brand safety enforcement — preventing the LLM from generating outputs that contradict company policy, make unauthorized product claims, or reference competitors inappropriately.'},
+    ],
+    impact:[
+      {icon:'🐢',text:'<strong>Guardrail latency</strong> adds overhead to every single request and response cycle — even a 30ms filter tax becomes significant when stacked with network, gateway, and model latency.'},
+      {icon:'🚫',text:'<strong>Over-aggressive filtering</strong> produces false positives that block legitimate requests, causing users to receive generic refusals instead of helpful AI responses, destroying trust.'},
+      {icon:'💀',text:'<strong>Guardrail service failure</strong> creates a binary choice: pass all traffic unfiltered (security risk) or block all traffic (availability failure) — both outcomes are operationally bad.'},
+    ]
+  },
+  'tokenization': {
+    icon:'🔐', title:'Tokenization Server', subtitle:'PII | DLP | Data Masking — Sensitive data protection layer', te:false,
+    interactions:'The Tokenization Server sits between the AI User Interface and the LLM API. Before a prompt is sent externally, it scans for and replaces sensitive entities (names, SSNs, account numbers, health data) with reversible tokens or synthetic placeholders. After the LLM returns a response, it performs de-tokenization to restore original values where appropriate for the user.',
+    tags:[['AI User Interface','tag-cyan'],['API Gateway','tag-orange'],['LLM API','tag-cyan'],['Guardrails','tag-red']],
+    useCases:[
+      {icon:'🏥',text:'Healthcare AI — stripping PHI from clinical notes before sending to a cloud LLM for summarization, ensuring HIPAA compliance without sacrificing the quality of AI-assisted clinical workflows.'},
+      {icon:'💳',text:'Financial services — masking account numbers and transaction details in customer service AI prompts, preventing PCI-DSS scope expansion to extend to the external LLM provider.'},
+      {icon:'⚖️',text:'Legal and HR AI — redacting employee names, case numbers, and privileged information from documents before AI-assisted analysis, drafting, or summarization tasks.'},
+    ],
+    impact:[
+      {icon:'⏱️',text:'<strong>Tokenization latency</strong> adds overhead to every prompt — under load this can add hundreds of milliseconds before the request even reaches the LLM, directly extending response time.'},
+      {icon:'🔍',text:'<strong>Missed PII detection</strong> due to model gaps or novel data formats results in sensitive data being transmitted to external LLM providers, creating compliance violations and audit findings.'},
+      {icon:'🔴',text:'<strong>Service unavailability</strong> typically causes AI requests to be blocked entirely in fail-closed mode, making all AI features inaccessible rather than risking regulatory data exposure.'},
+    ]
+  },
+  'prompt-cache': {
+    icon:'🧠', title:'Prompt Cache', subtitle:'KV Cache | Semantic Hash — Response acceleration layer', te:false,
+    interactions:'The Prompt Cache intercepts outgoing requests between the AI Router and the LLM API. It generates a semantic or exact hash of the prompt and checks for a matching cached result within the TTL window. Cache hits return immediately without touching the LLM. Cache misses pass through to the LLM API normally, with successful responses stored for future reuse.',
+    tags:[['AI Router','tag-purple'],['LLM API','tag-cyan'],['Observability','tag-teal']],
+    useCases:[
+      {icon:'💰',text:'Cost reduction — identical or semantically similar prompts (FAQ responses, templated summaries) are served from cache, avoiding expensive per-token LLM API inference charges.'},
+      {icon:'⚡',text:'Latency optimization for high-frequency queries — common prompts in customer service or code assistance tools return sub-10ms cached responses versus 1–5 second LLM API calls.'},
+      {icon:'📊',text:'Throughput scaling — during traffic spikes, serving cached responses prevents proportional load increases on LLM API rate limits, preserving quota for genuinely novel requests.'},
+    ],
+    impact:[
+      {icon:'💸',text:'<strong>Cache invalidation failures</strong> serve stale responses — outdated information, superseded policy, or incorrect data is presented to users as current, confident AI output.'},
+      {icon:'📈',text:'<strong>Low cache hit rates</strong> due to poor key design eliminate cost and latency benefits while adding cache lookup overhead and additional latency to every single cache-miss request.'},
+      {icon:'🔴',text:'<strong>Cache service failure</strong> forces all traffic to hit the LLM API directly, potentially exceeding rate limits and causing widespread throttling errors during peak usage periods.'},
+    ]
+  },
+  'observability': {
+    icon:'📜', title:'Observability Platform', subtitle:'Tracing | Logging | Spans — AI telemetry and diagnostics', te:false,
+    interactions:'The Observability layer passively instruments every component in the AI delivery path — collecting distributed traces, structured logs, and metric spans. It integrates with the AI Router, LLM API, MCP Server, Guardrails, and Response Validator, exporting data to monitoring platforms (Datadog, Grafana, Splunk) and feeding alerting rules for SLA violations and anomaly detection.',
+    tags:[['AI Router','tag-purple'],['LLM API','tag-cyan'],['MCP Server','tag-cyan'],['Guardrails','tag-red'],['Response Validator','tag-green']],
+    useCases:[
+      {icon:'🔍',text:'End-to-end distributed tracing of AI requests — correlating a user\'s 5-second response time back to a specific LLM API provider latency spike with full hop-by-hop context.'},
+      {icon:'📊',text:'Token usage dashboards for FinOps teams — tracking per-team, per-model, and per-use-case LLM spend in real time against budget thresholds with alerting on overage.'},
+      {icon:'🚨',text:'Alerting on AI quality regressions — detecting when error rates, hallucination scores, or guardrail trigger rates exceed baseline thresholds following a provider model update.'},
+    ],
+    impact:[
+      {icon:'🕵️',text:'<strong>Missing traces</strong> make incident root cause analysis pure guesswork — teams spend hours correlating logs manually rather than having immediate path-level diagnostic visibility.'},
+      {icon:'📉',text:'<strong>Incomplete telemetry</strong> means SLA calculations are inaccurate — organizations may over- or under-report AI service quality to stakeholders based on partial data.'},
+      {icon:'🔇',text:'<strong>Alerting gaps</strong> allow degradation to silently persist — a provider experiencing elevated latency may affect users for hours before anyone with the authority to act is notified.'},
+    ]
+  },
+  'response-validator': {
+    icon:'✅', title:'Response Validator', subtitle:'Accuracy | Hallucination Detection — Output quality assurance', te:false,
+    interactions:'The Response Validator intercepts LLM API outputs before delivery to the AI UI. It runs quality checks including factual grounding verification against RAG results, hallucination scoring, format validation ensuring structured outputs match expected schemas, and confidence assessment. Failed responses may be rejected and retried, degraded to a fallback, or flagged for human review.',
+    tags:[['LLM API','tag-cyan'],['Vector DB / RAG','tag-teal'],['AI User Interface','tag-cyan'],['Observability','tag-teal']],
+    useCases:[
+      {icon:'🏥',text:'Medical and legal AI — automatically detecting when an LLM asserts a fact not grounded in the provided source documents, preventing hallucinations in high-stakes decision workflows.'},
+      {icon:'🤖',text:'Agentic AI workflows — validating that tool-calling decisions and structured JSON outputs conform to expected schemas before downstream systems execute automated actions.'},
+      {icon:'📊',text:'Continuous model quality monitoring — tracking hallucination rates across model versions to detect quality regressions introduced by provider updates or configuration changes.'},
+    ],
+    impact:[
+      {icon:'⏱️',text:'<strong>Validator latency</strong> adds to every response cycle — grounding checks against large corpora can add 200–500ms, significantly extending perceived response time for every user.'},
+      {icon:'🔁',text:'<strong>High rejection rates</strong> from aggressive thresholds cause excessive retries, multiplying LLM API costs and increasing average response latency for all concurrent users.'},
+      {icon:'💀',text:'<strong>Validator failure with fail-closed behavior</strong> blocks all AI responses — the validator being down paradoxically makes the entire AI system unusable even when the LLM is fully healthy.'},
+    ]
+  },
+  'llm-server': {
+    icon:'☁️', title:'LLM Server', subtitle:'Cloud Provider | GPU Cluster — The inference compute layer', te:false,
+    interactions:'The LLM Server is the compute backend executing model inference. It receives tokenized prompts from the LLM API, runs the forward pass across GPU clusters, and streams generated tokens back. It interacts with the KV cache for attention state reuse, manages batch scheduling across concurrent requests, and may trigger tool-calling instructions passed back through the LLM API to the MCP Server.',
+    tags:[['LLM API','tag-cyan'],['MCP Server','tag-cyan'],['Prompt Cache','tag-purple']],
+    useCases:[
+      {icon:'🖥️',text:'Private cloud LLM deployment — enterprises running self-hosted Llama or Mistral models on on-premises GPU clusters for data sovereignty, customization, and cost control at scale.'},
+      {icon:'🌐',text:'Managed inference services — cloud provider offerings (Azure OpenAI, AWS Bedrock, GCP Vertex AI) abstracting GPU infrastructure management behind a simple scalable API.'},
+      {icon:'⚡',text:'Speculative decoding and dynamic batching — GPU scheduling strategies that maximize throughput and minimize time-to-first-token under high concurrency while controlling cost.'},
+    ],
+    impact:[
+      {icon:'🔥',text:'<strong>GPU saturation under high concurrency</strong> increases inference queuing time, causing time-to-first-token to spike even when the model itself is functioning correctly.'},
+      {icon:'📉',text:'<strong>Model serving errors</strong> (OOM, CUDA failures) can cause silent result truncation or malformed outputs that pass through the LLM API without raising an HTTP error code to the caller.'},
+      {icon:'🔧',text:'<strong>Infrastructure maintenance on self-hosted deployments</strong> causes complete AI outages — without redundancy, any server-level issue eliminates the entire AI capability for all users.'},
+    ]
+  },
+  'mcp-server': {
+    icon:'🖧', title:'MCP Server', subtitle:'Tool Discovery | Auth | Request Broker — The AI tool orchestration layer', te:true,
+    interactions:'The MCP Server acts as a middleware broker between the LLM and enterprise tools. When the LLM API returns a tool-calling request, the MCP Server resolves which registered tool to invoke, authenticates the request via the Identity & Auth system, dispatches the call to the appropriate Enterprise API or MCP Client, and returns results back to the LLM for continued generation.',
+    tags:[['LLM API','tag-cyan'],['LLM Server','tag-blue'],['Identity & Auth','tag-orange'],['Enterprise APIs','tag-green'],['MCP Clients','tag-gray']],
+    useCases:[
+      {icon:'🔧',text:'Agentic AI workflows — enabling the LLM to autonomously search internal knowledge bases, create Jira tickets, query Salesforce records, or send Slack messages on behalf of the user.'},
+      {icon:'🔍',text:'Standardized tool registry — maintaining a discoverable catalog of available enterprise tools so any LLM can query available capabilities without requiring hard-coded per-integration logic.'},
+      {icon:'🔐',text:'Centralized auth enforcement for tool calls — ensuring every LLM-initiated API call is scoped to the requesting user\'s permissions, preventing any privilege escalation via AI.'},
+    ],
+    impact:[
+      {icon:'🤖',text:'<strong>MCP Server unavailability</strong> disables all agentic AI capabilities — the LLM can still respond conversationally, but cannot take any action or retrieve live enterprise data.'},
+      {icon:'🔐',text:'<strong>Auth broker latency</strong> adds overhead to every tool call in a multi-step agent chain — a 5-step agentic task could accumulate 500ms or more of pure authentication overhead.'},
+      {icon:'🔀',text:'<strong>Tool registration failures</strong> cause the LLM to attempt calls against stale endpoints or hallucinate tool schemas, producing incorrect or failed actions in automated workflows.'},
+    ]
+  },
+  'identity-auth': {
+    icon:'🔑', title:'Identity & Auth', subtitle:'OIDC | SAML | API Keys — Access control and credential management', te:false,
+    interactions:'The Identity & Auth system is called by multiple components: the API Gateway validates inbound user tokens, the MCP Server authenticates outbound tool-call requests, and the Corporate Network enforces device posture via ZTNA integration. It issues short-lived access tokens, validates OAuth scopes, and enforces RBAC policies controlling which AI features and data each user can access.',
+    tags:[['API Gateway','tag-orange'],['MCP Server','tag-cyan'],['Corp. Network','tag-teal'],['Enterprise APIs','tag-green']],
+    useCases:[
+      {icon:'🛂',text:'SSO integration — employees authenticate once via corporate IdP (Okta, Azure AD) and receive scoped tokens that grant access to AI features appropriate for their specific role.'},
+      {icon:'🔐',text:'Service-to-service auth — MCP Server uses machine identity certificates to authenticate tool calls to enterprise APIs without embedding long-lived credentials in configuration files.'},
+      {icon:'📋',text:'Fine-grained authorization — controlling which users can invoke which AI tools, e.g. only HR can trigger Workday queries, only finance can access SAP data via AI workflows.'},
+    ],
+    impact:[
+      {icon:'🚫',text:'<strong>IdP outage</strong> prevents all users from authenticating to AI services — token validation failures cascade through the API Gateway and MCP Server, blocking all AI functionality globally.'},
+      {icon:'⏱️',text:'<strong>Token validation latency</strong> adds overhead to every API Gateway check — high auth service latency effectively rate-limits every AI request traversing the system simultaneously.'},
+      {icon:'🔓',text:'<strong>Token expiry mismanagement</strong> causes silent mid-session auth failures — users experience AI features abruptly stopping mid-workflow with cryptic authorization error messages.'},
+    ]
+  },
+  'enterprise-apis': {
+    icon:'🗄️', title:'Enterprise APIs', subtitle:'CRM | ERP | Internal SaaS — Business system integration layer', te:true,
+    interactions:'Enterprise APIs are called by the MCP Server in response to LLM tool-calling requests. They expose data and actions from core business systems — Salesforce, SAP, Workday, ServiceNow — via REST or GraphQL endpoints. Results return to the MCP Server, which packages them as tool-call responses back to the LLM for incorporation into the generated response to the user.',
+    tags:[['MCP Server','tag-cyan'],['Identity & Auth','tag-orange'],['Vector DB / RAG','tag-teal'],['Enterprise Tools','tag-purple']],
+    useCases:[
+      {icon:'📊',text:'AI-powered CRM queries — salespeople ask the AI to pull Salesforce deal status, contact history, and next-step recommendations without leaving their current working context.'},
+      {icon:'🏭',text:'ERP data retrieval — AI assistants surfacing inventory levels, purchase order status, or financial metrics from SAP in natural language responses grounded in live system data.'},
+      {icon:'🎫',text:'ITSM integration — AI agents creating, updating, and resolving ServiceNow tickets autonomously based on conversation context, diagnosis results, and runbook instructions.'},
+    ],
+    impact:[
+      {icon:'🐢',text:'<strong>Slow Enterprise API responses</strong> directly extend LLM generation time — the AI cannot complete its response until all tool-call results return, stalling the entire user interaction.'},
+      {icon:'🔴',text:'<strong>API endpoint failures</strong> cause tool calls to return errors the LLM must handle — poor error handling results in confused, incomplete, or hallucinated responses presented as factual.'},
+      {icon:'🔒',text:'<strong>Auth failures or rate limiting</strong> on enterprise APIs silently prevent AI from accessing live business data — users receive responses based on stale training data instead of current system state.'},
+    ]
+  },
+  'vector-db': {
+    icon:'🔎', title:'Vector DB / RAG', subtitle:'Embeddings | Similarity Search — Retrieval-augmented generation layer', te:true,
+    interactions:'The Vector DB stores dense vector embeddings of enterprise knowledge (documents, policies, product data). During inference, the LLM API or MCP Server issues an embedding query based on the user\'s prompt. The Vector DB performs approximate nearest-neighbor search and returns the top-k most semantically relevant chunks, which are injected into the LLM context window as grounding context.',
+    tags:[['LLM API','tag-cyan'],['MCP Server','tag-cyan'],['Enterprise APIs','tag-green'],['Response Validator','tag-green']],
+    useCases:[
+      {icon:'📚',text:'Enterprise knowledge base Q&A — AI answers questions about internal policies, procedures, and documentation by retrieving the most relevant passages at query time rather than from training.'},
+      {icon:'🛠️',text:'Technical support AI — grounding LLM responses in the latest product documentation, release notes, and known issues database to produce accurate, current troubleshooting guidance.'},
+      {icon:'⚖️',text:'Legal and compliance research — semantic search over thousands of contracts, regulations, or case files to surface relevant precedents for AI-assisted legal analysis and review.'},
+    ],
+    impact:[
+      {icon:'🎯',text:'<strong>Poor retrieval quality</strong> — irrelevant or missing chunks — causes the LLM to generate without proper grounding, dramatically increasing hallucination rates and factual error frequency.'},
+      {icon:'⏱️',text:'<strong>High ANN search latency under load</strong> extends time-to-first-token significantly — every RAG-enabled query pays this retrieval tax before LLM generation can even begin.'},
+      {icon:'📅',text:'<strong>Stale embedding indexes</strong> from infrequent re-ingestion cause the AI to answer based on outdated information — users receive confident but factually incorrect responses about recently changed data.'},
+    ]
+  },
+  'mcp-clients': {
+    icon:'📂', title:'MCP Clients', subtitle:'Tools | Databases | Filesystems — Local tool execution environments', te:false,
+    interactions:'MCP Clients are lightweight agents that expose local or system-level capabilities to the MCP Server. They register available tools (filesystem access, local DB queries, desktop application control) with the MCP Server and execute tool calls dispatched to them. Results flow back through the MCP Server to the LLM. Each client operates within a sandboxed permission scope defined by Identity & Auth.',
+    tags:[['MCP Server','tag-cyan'],['Enterprise Tools','tag-purple'],['Identity & Auth','tag-orange']],
+    useCases:[
+      {icon:'💻',text:'Local file system agent — allowing AI to read, write, and organize files on behalf of the user within pre-approved directory scopes, without requiring cloud file storage integration.'},
+      {icon:'🗃️',text:'Local database client — enabling the LLM to query on-premises databases that cannot be exposed via public APIs, with row-level security enforced at the client layer.'},
+      {icon:'🖥️',text:'Desktop automation client — AI controlling local applications (Excel, IDE, browser) to execute multi-step workflows triggered entirely by natural language user instructions.'},
+    ],
+    impact:[
+      {icon:'🔌',text:'<strong>Client disconnection</strong> from the MCP Server removes tool capabilities from the LLM\'s registered tool set — agentic workflows silently lose functionality mid-session without clear user notification.'},
+      {icon:'🐢',text:'<strong>Slow local tool execution</strong> (large file reads, unindexed DB queries) creates bottlenecks in agentic chains that multiply in impact across every step of a multi-step automated task.'},
+      {icon:'🔐',text:'<strong>Permission scope creep</strong> in MCP clients can allow the LLM to access resources beyond intended boundaries, creating data leakage and compliance risks in production automated workflows.'},
+    ]
+  },
+  'enterprise-tools': {
+    icon:'🔧', title:'Enterprise Tools', subtitle:'Jira | Slack | GitHub | SAP — Action execution targets', te:false,
+    interactions:'Enterprise Tools are the final destination of AI-initiated actions. They receive API calls dispatched via the MCP Server and MCP Clients — creating tickets in Jira, posting messages in Slack, committing code to GitHub, or updating SAP records. Results (confirmation IDs, resource URLs, error states) flow back through the MCP chain to the LLM for incorporation into the final user response.',
+    tags:[['MCP Server','tag-cyan'],['MCP Clients','tag-gray'],['Enterprise APIs','tag-green']],
+    useCases:[
+      {icon:'🎫',text:'AI-driven ticket creation — automatically generating Jira stories with acceptance criteria and priority scores based on a natural language feature description from a product manager.'},
+      {icon:'📣',text:'Proactive notifications — AI agents sending Slack alerts when monitored conditions are met, with context-rich summaries generated from live data retrieval and analysis.'},
+      {icon:'🔄',text:'End-to-end workflow automation — AI handling a full request-to-approval lifecycle across multiple enterprise tools without any human hand-offs between systems.'},
+    ],
+    impact:[
+      {icon:'🔴',text:'<strong>Tool API downtime</strong> causes AI-initiated actions to fail silently or with generic errors — users believe the AI completed their request when no action was actually taken in any system.'},
+      {icon:'🔄',text:'<strong>Duplicate action risk</strong> — when the LLM retries a failed tool call without idempotency guarantees, multiple tickets, messages, or records may be unintentionally created in production systems.'},
+      {icon:'⏱️',text:'<strong>Slow tool API responses</strong> in multi-step agentic workflows compound in impact — a 3-second Jira API call repeated 5 times in a single chain produces a 15-second user-facing delay.'},
+    ]
+  }
+};
+
+function buildTags(tags){return tags.map(([l,c])=>`<span class="modal-tag ${c}">${l}</span>`).join('');}
+function buildItems(items){return items.map(i=>`<div class="impact-item"><div class="impact-icon">${i.icon}</div><div class="impact-text">${i.text}</div></div>`).join('');}
+
+function openModal(id){
+  const d=DATA[id]; if(!d) return;
+  document.getElementById('modalIcon').textContent=d.icon;
+  document.getElementById('modalTitle').textContent=d.title;
+  document.getElementById('modalSubtitle').textContent=d.subtitle;
+  document.getElementById('modalTEBadge').innerHTML=d.te?'<div class="modal-te-badge">◎ THOUSANDEYES MONITORED</div>':'';
+  document.getElementById('modalInteractions').textContent=d.interactions;
+  document.getElementById('modalTags').innerHTML=buildTags(d.tags);
+  document.getElementById('modalUseCases').innerHTML=buildItems(d.useCases);
+  document.getElementById('modalImpact').innerHTML=buildItems(d.impact);
+  document.getElementById('modal').scrollTop=0;
+  document.getElementById('modalOverlay').classList.add('active');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('active');
+  document.body.style.overflow='';
+}
+function closeModalOnOverlay(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+</script>
+</body>
+</html>
